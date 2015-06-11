@@ -283,20 +283,28 @@ class BaseMethodIntrospector(object):
         params = []
         path_params = self.build_path_parameters()
         body_params = self.build_body_parameters()
-        form_params = self.build_form_parameters()
         query_params = self.build_query_parameters()
         if self.method == 'list' and django_filters is not None:
             query_params.extend(
                 self.build_query_parameters_from_django_filters())
 
+        form_params = None
+
+
         if path_params:
             params += path_params
 
-        if self.get_http_method() not in ["GET", "DELETE", "HEAD"]:
+        if self.get_http_method() == 'GET':
+            form_params = self.build_form_parameters(paramType="query")
+        elif self.get_http_method() not in ["DELETE", "HEAD"]:
+            form_params = self.build_form_parameters()
+
+
+        if form_params is not None:
             params += form_params
 
-            if not form_params and body_params is not None:
-                params.append(body_params)
+        if not form_params and body_params is not None:
+            params.append(body_params)
 
         if query_params:
             params += query_params
@@ -394,7 +402,7 @@ class BaseMethodIntrospector(object):
 
         return params
 
-    def build_form_parameters(self):
+    def build_form_parameters(self, paramType='form'):
         """
         Builds form parameters from the serializer class
         """
@@ -421,7 +429,7 @@ class BaseMethodIntrospector(object):
                 data_format = self.PRIMITIVES.get(data_type)[0]
 
             f = {
-                'paramType': 'form',
+                'paramType': paramType,
                 'name': name,
                 'description': getattr(field, 'help_text', '') or '',
                 'type': data_type,
