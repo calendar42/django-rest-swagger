@@ -20,6 +20,9 @@ class DocumentationGenerator(object):
     # Response classes defined in docstrings
     explicit_response_types = dict()
 
+    #names of value contraints used in REST serializers
+    contraint_names = ["max_length", "min_length", "max_val", "min_val"]
+
     def generate(self, apis):
         """
         Returns documentation for a list of APIs
@@ -290,9 +293,13 @@ class DocumentationGenerator(object):
             description = getattr(field, 'help_text', '')
             if not description or description.strip() == '':
                 description = None
+            #custom variable to add constraints to swagger pages
+            constraints = [(k, getattr(field, k, None)) for k in self.contraint_names]
+            c_string = ", ".join(["{k}: {v}".format(k=k, v=v) for k, v in constraints if v is not None])
+            type_description = "{t}; {c}".format(t=data_type, c=c_string) if len(c_string) else data_type
             f = {
                 'description': description,
-                'type': data_type,
+                'type': type_description, #custom
                 'format': data_format,
                 'required': getattr(field, 'required', False),
                 'defaultValue': get_default_value(field),
